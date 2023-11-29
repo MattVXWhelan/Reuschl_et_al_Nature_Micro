@@ -1,0 +1,46 @@
+import numpy as np
+import pandas as pd
+from matplotlib import pyplot as plt
+%matplotlib inline
+import os
+
+# Read CSV #
+os.chdir('D:\\AK_BA5_2023_NFKB\\Matt_BA5_R3_S2_NFKB_24h_IA_110423_1517\\Final_Nucleocapsid_Transloc290623_1330\\Reports\\')
+
+# Read CSV #
+df = pd.read_csv("Infected.csv")
+df2 = df.copy()
+df2['well'] = df2['well'].astype(str)
+
+combined_filtered_df = pd.DataFrame()  # Initialize an empty dataframe to store the combined filtered data
+combined_sampled_df = pd.DataFrame()   # Initialize an empty dataframe to store the combined sampled data
+
+for well_value in df2['well'].unique():
+    filtered_df = df2[df2['well'].str.contains(well_value)][['Mean NCR']].copy()
+    filtered_df.rename(columns={'Mean NCR': well_value}, inplace=True)
+    
+    sampled_df = filtered_df.sample(n=min(3000, len(filtered_df)), replace=False)
+    
+    combined_filtered_df = pd.concat([combined_filtered_df, filtered_df], axis=1)
+    combined_sampled_df = pd.concat([combined_sampled_df, sampled_df], axis=1)
+
+# Remove blank cells and align values in the combined_filtered_df and combined_sampled_df dataframes
+combined_filtered_df = combined_filtered_df.fillna('')
+combined_filtered_df, combined_sampled_df = combined_filtered_df.align(combined_sampled_df, fill_value='')
+
+# Keep only cells with numbers and drop blanks in each column
+combined_filtered_df = combined_filtered_df.apply(pd.to_numeric, errors='coerce').dropna(how='all')
+combined_sampled_df = combined_sampled_df.apply(pd.to_numeric, errors='coerce').dropna(how='all')
+
+# Sort each column from largest to smallest integer and move cells with numbers to the start of each column
+combined_filtered_df = combined_filtered_df.apply(lambda x: sorted(x, key=pd.notnull, reverse=True) if x.dtype == 'float64' or x.dtype == 'int64' else x)
+combined_sampled_df = combined_sampled_df.apply(lambda x: sorted(x, key=pd.notnull, reverse=True) if x.dtype == 'float64' or x.dtype == 'int64' else x)
+
+print("Combined Filtered DataFrame (sorted):")
+print(combined_filtered_df)
+
+print("Combined Sampled DataFrame (sorted):")
+print(combined_sampled_df)
+
+combined_filtered_df.to_csv(r'D:\\AK_BA5_2023_NFKB\\Matt_BA5_R3_S2_NFKB_24h_IA_110423_1517\\Final_Nucleocapsid_Transloc290623_1330\\Reports\\Infected_combined_filtered.csv', header=True, index=False)
+combined_sampled_df.to_csv(r'D:\\AK_BA5_2023_NFKB\\Matt_BA5_R3_S2_NFKB_24h_IA_110423_1517\\Final_Nucleocapsid_Transloc290623_1330\\Reports\\Infected_combined_sampled.csv', header=True, index=False)
