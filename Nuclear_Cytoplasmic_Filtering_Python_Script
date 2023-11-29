@@ -1,0 +1,99 @@
+import numpy as np
+import pandas as pd
+from matplotlib import pyplot as plt
+%matplotlib inline
+import os
+
+input_dir = 'D:\\AK_BA5_2023_IRF3\\Matt_BA5_R3_S2_IRF3_10h_IA_100423_1452\\N+_dsRNA_Coloc280623_1144\\Reports\\'
+output_dir = 'D:\\AK_BA5_2023_IRF3\\Matt_BA5_R3_S2_IRF3_10h_IA_100423_1452\\N+_dsRNA_Coloc280623_1144\\Reports\\'
+
+# Read CSV
+df = pd.read_csv(input_dir + "Data.csv")
+
+
+#os.chdir('D:\\AK_BA5_2023_IRF3\\Matt_BA5_R3_S2_IRF3_10h_IA_100423_1452\\Final_Nucleocapsid_Transloc290623_1233\\Reports')
+# Read CSV #
+#df = pd.read_csv("Data.csv")
+#print(df)
+
+df["Mean NCR"] = df["Mean Nuc Intensity"] / df["Mean Cyt Intensity"]
+df["Int NCR"] = df["Integrated Nuc Intensity"] / df["Integrated Cyt Intensity"]
+df["TotalInt.Cell"] = df["Integrated Nuc Intensity"] + df["Integrated Cyt Intensity"]
+df["Mean Cell Intensity"] = df["Mean Nuc Intensity"] + df["Mean Cyt Intensity"]
+df["Total Granules"] = df["Count Granules Cytoplasm"] + df["Count Granules Nuc"]
+#print(df["Mean NCR"])
+#print(df["Int NCR"])
+################################################################ Filter by Cell Area
+# Select the 1% quantile
+CA_q1 = df['Cell Area'].quantile(.01)
+# Select the 99% quantile
+CA_q99 = df['Cell Area'].quantile(.99)
+# Filtering the data based off of Cell area, f=filtered, optimised for 10x magnification
+df_f1 = df.copy()
+df_fx = df_f1[(df_f1['Cell Area'].between(CA_q1, CA_q99, inclusive=True))]
+#df_f1.drop(index, inplace=False)
+print(df_fx)
+################################################################ Filter by Nuclear Area
+# Select the 1% quantile
+NA_q1 = df['Area.Nuc'].quantile(.01)
+# Select the 99% quantile
+NA_q99 = df['Area.Nuc'].quantile(.99)
+# Filtering the data based off of Cell area, f=filtered, optimised for 10x magnification
+df_f2 = df_fx.copy()
+df_fy = df_f2[(df_f2['Area.Nuc'].between(NA_q1, NA_q99, inclusive=True))]
+
+
+################################################################ Filter by Mean Nuclear Intensity
+
+# Select the 1% quantile
+NI_q1 = df['Mean Nuc Intensity'].quantile(.01)
+# Select the 99% quantile
+NI_q99 = df['Mean Nuc Intensity'].quantile(.99)
+# Filtering the data based off of Cell area, f=filtered, optimised for 10x magnification
+df_f3 = df_fy.copy()
+df_fz = df_f3[(df_f3['Mean Nuc Intensity'].between(NI_q1, NI_q99, inclusive=True))]
+#df_f2.drop(index, inplace=False)
+
+
+################################################################ Filter by Mean Cytoplasmic Intensity
+
+# Select the 1% quantile
+CI_q1 = df['Mean Cyt Intensity'].quantile(.01)
+# Select the 99% quantile
+CI_q99 = df['Mean Cyt Intensity'].quantile(.99)
+# Filtering the data based off of Cell area, f=filtered, optimised for 10x magnification
+df_f4 = df_fz.copy()
+df_fz1 = df_f4[(df_f4['Mean Cyt Intensity'].between(CI_q1, CI_q99, inclusive=True))]
+#df_f3.drop(index, inplace=False)
+print(df_f3)
+
+###############################################################
+# define dataframe of filtered data #
+df_f5 = df_fz1[['well','Mean NCR', 'Int NCR','Mean Nuc Intensity','TotalInt.Cell', 'Mean Cell Intensity','Granules TotInt Cell','Total Granules']]#'Total Granules']]
+
+# define subpopulations based off of the presence of marker signal as 'Granules' #
+Infected = df_f5[['well','Mean NCR', 'Int NCR','Mean Nuc Intensity','TotalInt.Cell', 'Mean Cell Intensity','Granules TotInt Cell','Total Granules']]
+index = Infected[(Infected['Total Granules'] < 2)].index
+Infected.drop(index, inplace=True)
+Infected['Mean NCR'].describe()
+#print(Infected["Mean NCR"])
+
+Bystander = df_f5[['well','Mean NCR', 'Int NCR','Mean Nuc Intensity','TotalInt.Cell', 'Mean Cell Intensity','Granules TotInt Cell','Total Granules']]
+index = Bystander[(Bystander['Total Granules'] >= 1)].index
+Bystander.drop(index, inplace=True)
+Bystander['Mean NCR'].describe()
+#print(Infected["Mean NCR"])
+
+
+print(CA_q1)
+print(CA_q99)
+print(NA_q1)
+print(NA_q99)
+print(CI_q1)
+print(CI_q99)
+print(NI_q1)
+print(NI_q99)
+
+df_f5.to_csv(output_dir + "Data_filtered.csv", header=True, index=False)
+Infected.to_csv(output_dir + "Infected.csv", header=True, index=False)
+Bystander.to_csv(output_dir + "Bystander.csv", header=True, index=False)
